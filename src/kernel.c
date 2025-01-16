@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "idt/idt.h"
 #include "io/io.h"
+#include "memory/heap/kheap.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -112,7 +113,7 @@ void kernel_main(){
         So we create a function 'terminal_make_colour' to convert it. 
     */
     terminal_initialize();
-    print("Hello world!!!");
+    print("Hello world!\ntest");
 
     /*
         initialize the interrupt descriptor table 
@@ -120,9 +121,19 @@ void kernel_main(){
     idt_init();
 
     /*
+        disable interrupts so the system does not get interrupted while doing this 
+    */
+    disable_interrupts();
+
+    /*
         generating an interrupt as we are dividing it number by zero 
     */
     problem();
+
+    /*
+        enabling interrupts so the system does get interrupted for another interrupts 
+    */
+    enable_interrupts();
 
     /*
         using io to provide output this char
@@ -134,5 +145,29 @@ void kernel_main(){
     /*
         the above one is to directly call the i/o
         This is used to handle the i/o using interrupts
+
+        We are using keyboard to call this interrupt.
+        
+        this way we are only taking interrupt from keyboard only once
+        so we need will change it that is takes interrupt everytime.  
+
+        If we change the interrupt from 0x21 to 0x20, as 20 is for timer
+        then we will get continous interrupt on the screen for keyboard.
     */
+
+
+    /*
+        Here now we are goining to implement heap allocation
+    */
+    kheap_init();
+
+    void* ptr = kmalloc(50);
+    void* ptr2 = kmalloc(5000);
+    void* ptr3 = kmalloc(5600);
+    kfree(ptr);
+    void* ptr4 = kmalloc(50);
+    /* here we are using this to see if we have aloocated memory or not */
+    if( ptr || ptr2 || ptr3 || ptr4){
+
+    }
 }
