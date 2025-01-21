@@ -5,6 +5,7 @@
 #include "io/io.h"
 #include "memory/heap/kheap.h"
 #include "memory/paging/paging.h"
+#include "disk/disk.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -122,6 +123,16 @@ void kernel_main(){
     print("Hello world!\ntest");
 
     /*
+        Here now we are goining to implement heap allocation
+    */
+    kheap_init();
+
+    /*
+        Search and initialilze the disk
+    */
+    disk_search_and_init();
+
+    /*
         initialize the interrupt descriptor table 
     */
     idt_init();
@@ -131,6 +142,13 @@ void kernel_main(){
         having page table size of 1024
     */
     kernel_chunk = paging_new_4gb(PAGING_IS_WRITEABLE | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL);
+
+    /*
+        To directly read from the location into buffer
+    
+    char buf[512];
+    disk_read_block(disk_get(0), 20, 4, &buf);
+    */
 
     /*
         In-charge of switching pages as in paging there is no contigous memory location.
@@ -145,15 +163,17 @@ void kernel_main(){
 
     /*
         mapping the memory
-    */
+    
     char *ptr = kzalloc(4096);
+    */
 
     /*
         setting up for paging, so here in virtual addr 0x1000 should map to the ptr addr. 
         So if we use another ptr pointing to 0x1000, the data will be same as even though
         physical address is different as it is mapped to 0x1000 on virtual address.
-    */
+    
     paging_set(paging_4gb_chunk_get_directory(kernel_chunk), (void*)0x1000, (uint32_t)ptr | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
+    */
 
     /*
         testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
@@ -182,6 +202,19 @@ void kernel_main(){
     enable_interrupts;
 
     /*
+        reading into the buffer
+        Place the init code for disk at the start of the kernel so that it init the disk
+        at the start so that it is easy to map and access the location through an interface.
+
+        We can directly use the below without disk init, but a proper interface wont be create to regualrlly
+        and randomly accessing the data using API. We will need to know the exact location in the 
+        physical memory for paging and maping.
+ 
+    char buf[512];
+    disk_read_sector(0, 1, buf);
+    */
+
+    /*
         testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
         and the above ptr is pointing to 0x1000 virtual address having different physical address.
 
@@ -189,17 +222,13 @@ void kernel_main(){
         So by changing the values at ptr2, we will change the data at different physical address. 
 
         Output - ptr2 - AB and ptr - AB.
-    */
+    
     char* ptr2 = (char*) 0x1000;
     ptr2[0] = 'A';
     ptr2[1] = 'B';
     print(ptr2);
     print(ptr);
-
-    /*
-        Here now we are goining to implement heap allocation
     */
-    kheap_init();
 
     void* ptr = kmalloc(50);
     void* ptr2 = kmalloc(5000);
