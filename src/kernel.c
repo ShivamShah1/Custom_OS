@@ -4,6 +4,7 @@
 #include "idt/idt.h"
 #include "io/io.h"
 #include "memory/heap/kheap.h"
+#include "memory/paging/paging.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -80,6 +81,11 @@ void print(const char* str){
     }
 }
 
+/*
+    Here are proving static to this struct so that it is only available to this process
+*/
+static struct paging_4gb_chunk* kernel_chunk = 0;
+
 void kernel_main(){
     /*
         here we will see a letter 'A' in blue colour at the booting process with other data
@@ -121,6 +127,91 @@ void kernel_main(){
     idt_init();
 
     /*
+        Providing 4096 bytes of chunk to a single page and
+        having page table size of 1024
+    */
+    kernel_chunk = paging_new_4gb(PAGING_IS_WRITEABLE | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL);
+
+    /*
+        In-charge of switching pages as in paging there is no contigous memory location.
+        So, if the memory is contigous then there is no meaning of paging.
+
+        So, to get the data properly as the location of the data is scatter all the 
+        place, to retrive the data properly we use page switching method. 
+        
+        paging_4gb_chunk_get_directory is for getting location of page.
+    */
+    paging_switch(paging_4gb_chunk_get_directory(kernel_chunk));
+
+    /*
+        mapping the memory
+    */
+    char *ptr = kzalloc(4096);
+
+    /*
+        setting up for paging, so here in virtual addr 0x1000 should map to the ptr addr. 
+        So if we use another ptr pointing to 0x1000, the data will be same as even though
+        physical address is different as it is mapped to 0x1000 on virtual address.
+    */
+    paging_set(paging_4gb_chunk_get_directory(kernel_chunk), (void*)0x1000, (uint32_t)ptr | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
+
+    /*
+        testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
+        and the above ptr is pointing to 0x1000 virtual address having different physical address.
+
+        Here we have not yet implemented the enable_pagin(), so it is not enabled. =
+        So by changing the values at ptr2, we will not change the data at different physical address. 
+
+        Output- ptr2 -AB and ptr - empty.
+    
+    char* ptr2 = (char*) 0x1000;
+    ptr2[0] = 'A';
+    ptr2[1] = 'B';
+    print(ptr2);
+    print(ptr);
+    */
+
+    /*
+        enabling the paging
+    */
+    enable_paging;
+
+    /*
+        sometimes setting paging, it disables or triggers unneccessay interrupts
+    */
+    enable_interrupts;
+
+    /*
+        testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
+        and the above ptr is pointing to 0x1000 virtual address having different physical address.
+
+        Here we have enabled paging  
+        So by changing the values at ptr2, we will change the data at different physical address. 
+
+        Output - ptr2 - AB and ptr - AB.
+    */
+    char* ptr2 = (char*) 0x1000;
+    ptr2[0] = 'A';
+    ptr2[1] = 'B';
+    print(ptr2);
+    print(ptr);
+
+    /*
+        Here now we are goining to implement heap allocation
+    */
+    kheap_init();
+
+    void* ptr = kmalloc(50);
+    void* ptr2 = kmalloc(5000);
+    void* ptr3 = kmalloc(5600);
+    kfree(ptr);
+    void* ptr4 = kmalloc(50);
+    /* here we are using this to see if we have aloocated memory or not */
+    if( ptr || ptr2 || ptr3 || ptr4){
+
+    }
+
+    /*
         disable interrupts so the system does not get interrupted while doing this 
     */
     disable_interrupts();
@@ -154,20 +245,4 @@ void kernel_main(){
         If we change the interrupt from 0x21 to 0x20, as 20 is for timer
         then we will get continous interrupt on the screen for keyboard.
     */
-
-
-    /*
-        Here now we are goining to implement heap allocation
-    */
-    kheap_init();
-
-    void* ptr = kmalloc(50);
-    void* ptr2 = kmalloc(5000);
-    void* ptr3 = kmalloc(5600);
-    kfree(ptr);
-    void* ptr4 = kmalloc(50);
-    /* here we are using this to see if we have aloocated memory or not */
-    if( ptr || ptr2 || ptr3 || ptr4){
-
-    }
 }

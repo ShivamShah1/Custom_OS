@@ -1,0 +1,108 @@
+/*
+    This is the to creating paging the files into the RAM for 
+    hiding processes, easy RAM access, and much more.
+
+    Benefits to paging: -
+        to map the memory to a video buffer, so when we task switch we
+        still write to the memory as buffer is mapped to the physical
+        address
+    
+    We cannot map hardware addresses to mapping as everytime, the system
+    use to interact with hardware, it needs to go through CPU kernel.
+
+    So, in vedio memory, the CPU will look for mapped memory and
+    then send it to the hardware memory or SD card.
+*/
+
+#include "paging.h"
+#include "memory/heap/kheap.h"
+#include "status.h"
+
+void paging_load_directory(uint32_t* directory);
+
+/*  Here we are using static word as we do not want to have 
+    this curret_directory variable available to other files 
+*/
+static uint32_t* current_directory =0;
+
+/*
+    Providing 4096 bytes of chunk to a single page and
+    having page table size of 1024
+*/
+struct paging_4gb_chunk* paging_new_4gb(uint8_t flags){
+    uint32_t* directory = kzalloc(sizeof(sizeof(uint32_t) * PAGING_TOTAL_ENTRIES_PER_TABLE));
+    int offset = 0;
+    for(int i = 0; i<PAGING_TOTAL_ENTRIES_PER_TABLE; i++){
+        uint32_t* entry = kzalloc(sizeof(uint32_t)* PAGING_TOTAL_ENTRIES_PER_TABLE);
+        for(int b = 0; b<PAGING_TOTAL_ENTRIES_PER_TABLE; b++){
+            entry[b] = (offset + (b* PAGING_PAGE_SIZE)) | flags;
+        }
+        offset += (PAGING_TOTAL_ENTRIES_PER_TABLE * PAGING_PAGE_SIZE);
+        directory[i] = (uint32_t)entry | flags | PAGING_IS_WRITEABLE;
+    }
+    /*
+        Providing required space in the RAM
+    */
+    struct paging_4gb_chunk* chunk_4gb = kzalloc(sizeof(struct paging_4gb_chunk));
+    chunk_4gb->directory_entry = directory;
+    return chunk_4gb;
+}
+
+/*
+    In-charge of switching pages as in paging there is no contigous memory location.
+    So, if the memory is contigous then there is no meaning of paging.
+
+    So, to get the data properly as the location of the data is scatter all the 
+    place, to retrive the data properly we use page switching method. 
+*/
+void paging_switch(uint32_t* directory){
+    paging_load_directory(directory);
+    current_directory = directory;
+}
+
+/*
+    getting the location of the page or chunk in ram or memory
+*/
+uint32_t* paging_4gb_chunk_get_directory(struct paging_4gb_chunk* chunk){
+    return chunk->directory_entry;
+}
+
+bool pagin_is_aligned(void* addr){
+    return ((uint32_t)addr % PAGING_PAGE_SIZE) == 0;
+}
+
+int paging_get_indexes(void* virtual_address, uint32_t* directory_index_out, uint32_t* table_index_out){
+    int res = 0;
+    if(!pagin_is_aligned(virtual_address)){
+        res = -EINVARG;
+        goto out;
+    }
+
+    *directory_index_out = ((uint32_t)virtual_address/(PAGING_TOTAL_ENTRIES_PER_TABLE * PAGING_PAGE_SIZE));
+
+    /* Using this to get accurate table index starting from 0 instead of the real address as per location */
+    *table_index_out = ((uint32_t)virtual_address % (PAGING_TOTAL_ENTRIES_PER_TABLE * PAGING_PAGE_SIZE) / PAGING_PAGE_SIZE);
+
+out:
+    return res;
+}
+
+int paging_set(uint32_t* directory, void* virt, uint32_t val){
+    if(!pagin_is_aligned(virt)){
+        return -EINVARG;
+    }
+
+    uint32_t directory_index = 0;
+    uint32_t table_index = 0;
+    int res = paging_get_indexes(virt, &directory_index, &table_index);
+
+    if(res < 0){
+        return res;
+    }
+
+    /* This entry will store the starting address of the directory index */
+    uint32_t entry = directory[directory_index];
+
+    /* we want to extract only 31-11 bits as per the page_directory_entry struct */
+    uint32_t* table = (uint32_t*)(entry & 0xfffff000);
+}
