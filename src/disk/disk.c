@@ -3,6 +3,8 @@
     from which disk the user need to read and how much he needs to read.
 
     disk0 - primary hardware disk, and so on.
+
+    lba - Logical Block Address
 */
 
 #include "io/io.h"
