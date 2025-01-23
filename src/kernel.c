@@ -8,6 +8,7 @@
 #include "disk/disk.h"
 #include "fs/pparser.h"
 #include "string.h"
+#include "disk/streamer.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -206,12 +207,24 @@ void kernel_main(){
 
     /*
         using path parser to move from one part to another
-    */
+    
     struct path_root* root_path = pathparser_parse("0:/bin/shell.exe", NULL);
     if(root_path){
-        
-    }
 
+    }
+    */
+    
+    /*
+        Assigning disk 0 to read, then selecting single byte to read which is
+        0x201 and storing that location data to c.
+    */
+    struct disk_stream* stream = diskstreamer_new(0);
+    diskstreamer_seek(stream, 0x201);
+    unsigned char c = 0;
+    diskstreamer_read(stream, &c, 1);
+    /* to hold to see the data in qemu
+    while(1){}
+    */
 
     /*
         reading into the buffer
