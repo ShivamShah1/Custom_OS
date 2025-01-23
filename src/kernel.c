@@ -7,8 +7,9 @@
 #include "memory/paging/paging.h"
 #include "disk/disk.h"
 #include "fs/pparser.h"
-#include "string.h"
+#include "string/string.h"
 #include "disk/streamer.h"
+#include "fs/file.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -132,6 +133,11 @@ void kernel_main(){
     kheap_init();
 
     /*
+        after memory allocation we initializes filesystem
+    */
+    fs_init();
+    
+    /*
         Search and initialilze the disk
     */
     disk_search_and_init();
@@ -217,14 +223,20 @@ void kernel_main(){
     /*
         Assigning disk 0 to read, then selecting single byte to read which is
         0x201 and storing that location data to c.
-    */
+    
     struct disk_stream* stream = diskstreamer_new(0);
     diskstreamer_seek(stream, 0x201);
     unsigned char c = 0;
     diskstreamer_read(stream, &c, 1);
-    /* to hold to see the data in qemu
+        to hold to see the data in qemu
     while(1){}
     */
+    
+    /*
+        to check if the strcpy works properly
+    */
+    char buf[20];
+    strcpy(buf, "hello!");
 
     /*
         reading into the buffer
@@ -260,11 +272,14 @@ void kernel_main(){
     void* ptr3 = kmalloc(5600);
     kfree(ptr);
     void* ptr4 = kmalloc(50);
-    /* here we are using this to see if we have aloocated memory or not */
+    /* here we are using this to see if we have aloocated memory or not 
     if( ptr || ptr2 || ptr3 || ptr4){
 
     }
-
+    */
+    kfree(ptr2);
+    kfree(ptr3);
+    kfree(ptr4);
     /*
         disable interrupts so the system does not get interrupted while doing this 
     */
