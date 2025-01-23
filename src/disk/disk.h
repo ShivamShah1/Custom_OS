@@ -7,6 +7,9 @@
 
 #ifndef DISK_H
 #define DISK_H
+
+#include "fs/file.h"
+
 /* this is a primary hard disk */
 #define PEACHOS_DISK_TYYPE_REAL 0
 
@@ -15,7 +18,10 @@ typedef unsigned int PEACHOS_DISK_TYPE;
 struct disk{
     PEACHOS_DISK_TYPE type;
     int sector_size;
+
+    struct filesystem* filesystem;
 };
+
 struct disk* disk_get(int index);
 
 /* we are not giving this disk_read_sector to kernel as we are using it as low level extraction. so should not provide this file */
