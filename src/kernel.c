@@ -234,9 +234,43 @@ void kernel_main(){
     
     /*
         to check if the strcpy works properly
-    */
+    
     char buf[20];
     strcpy(buf, "hello!");
+    */
+
+    /*
+        testing the fat16 implementation using file descriptor using fopen, fread and fseek.
+
+        first fd is created and from that, it will look for a file name hello.txt
+        if it finds then loads its directory and items.
+        Once loaded, we can now read and write into them in streams also.
+    
+    int fd = fopen("0:/hello.txt", "r");
+    if(fd){
+        print("\n we opend hello.txt file \n");
+        char buf[14];
+        fseek(fd, 2, SEEK_SET);
+        // now reading from pos 2 instead of 0
+        fread(buf, 11, 1, fd);
+        // NULL terminator 
+        buf[13] = 0x00;
+        print(buf);
+    }
+    */
+
+    /*
+        testing filesystem using file programs
+    */
+    int fd = fopen("0:/hello.txt", "r");
+    print("\n file opened\n");
+    if(fd){
+        struct file_stat s;
+        fstat(fd, &s);
+        print("\n status of file\n");
+        fclose(fd);
+        print("\n file closed\n");
+    }
 
     /*
         reading into the buffer
