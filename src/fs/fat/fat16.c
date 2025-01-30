@@ -1,3 +1,6 @@
+/*
+    This is a filesystem file which helps to create a filesysstem FAT16
+*/
 #include "fat16.h"
 #include "status.h"
 #include "string/string.h"

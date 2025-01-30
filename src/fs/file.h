@@ -1,3 +1,6 @@
+/*
+    This is a header file which helps to create a FAT16 readable file
+*/
 #ifndef FILE_H
 #define FILE_H
 
