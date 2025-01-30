@@ -20,7 +20,7 @@ struct gdt{
     uint8_t access;
     uint8_t high_flags;
     uint8_t base_24_31_bits;
-};
+} __attribute__((packed));
 
 /*
     create another sturcture which will use the gdt struct

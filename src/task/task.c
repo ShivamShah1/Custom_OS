@@ -16,13 +16,13 @@ struct task* current_task = 0;
 struct task* task_tail = 0;
 struct task* task_head = 0;
 
-int task_init(struct task* task);
+int task_init(struct task* task, struct process* process);
 
 struct task* task_current(){
     return current_task;
 };
 
-struct task* task_new(){
+struct task* task_new(struct process* process){
     int res = 0;
     struct task* task = kzalloc(sizeof(struct task));
     if(!task){
@@ -30,7 +30,7 @@ struct task* task_new(){
         goto out;
     }
 
-    res = task_init(task);
+    res = task_init(task, process);
     if(res != PEACHOS_ALL_OK){
         goto out;
     }
@@ -102,7 +102,7 @@ int task_free(struct task* task){
 /*
     to initialize the task with the regesters
 */
-int task_init(struct task* task){
+int task_init(struct task* task, struct process* process){
     memset(task, 0, sizeof(struct task));
 
     /* mape the entire 4GB address space to itself */
@@ -115,6 +115,8 @@ int task_init(struct task* task){
     task->registers.ip = PEACHOS_PROGRAM_VIRTUAL_ADDRESS;
     task->registers.ss = USER_DATA_SEGMENT;
     task->registers.esp = PEACHOS_PROGRAM_VIRTUAL_STACK_ADDRESS_STATE;
+
+    task->process = process;
 
     return 0;
 }
