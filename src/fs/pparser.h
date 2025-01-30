@@ -1,3 +1,6 @@
+/*
+    This is a parser header file which help to parse the filename and path
+*/
 #ifndef PATHPARSER_H
 #define PATHPARSER_H
 

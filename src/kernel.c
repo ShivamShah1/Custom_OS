@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "idt/idt.h"
 #include "io/io.h"
+#include "memory/memory.h"
 #include "memory/heap/kheap.h"
 #include "memory/paging/paging.h"
 #include "disk/disk.h"
@@ -10,6 +11,8 @@
 #include "string/string.h"
 #include "disk/streamer.h"
 #include "fs/file.h"
+#include "config.h"
+#include "gdt/gdt.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -92,6 +95,22 @@ void print(const char* str){
 */
 static struct paging_4gb_chunk* kernel_chunk = 0;
 
+/*
+    incase of kernel panic or error, it will display the symbol
+*/
+void panic(const char* msg){
+    print(msg);
+    /* to stop the kernel to do something else and hold it here */
+    while(1){}
+}
+
+struct gdt gdt_real[PEACHOS_TOTAL_GDT_SEGMENTS];
+struct gdt_structured gdt_structured[PEACHOS_TOTAL_GDT_SEGMENTS] = {
+    {.base = 0x00, .limit = 0x00, .type = 0x00},        // NULL segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0x9a},  // kernel code segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0x92}   // kernel data segment
+};
+
 void kernel_main(){
     /*
         here we will see a letter 'A' in blue colour at the booting process with other data
@@ -126,6 +145,17 @@ void kernel_main(){
     */
     terminal_initialize();
     print("Hello world!\ntest");
+
+    /*
+        allocating memory to GDT and structuring it
+    */
+    memset(gdt_real, 0x00, sizeof(gdt_real));
+    gdt_structred_to_gdt(gdt_real, gdt_structured, PEACHOS_TOTAL_GDT_SEGMENTS);
+
+    /*
+        load the gdt
+    */
+    gdt_load(gdt_real, sizeof(gdt_real));
 
     /*
         Here now we are goining to implement heap allocation

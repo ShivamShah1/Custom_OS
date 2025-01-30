@@ -1,3 +1,6 @@
+/*
+    This is a source file to parse the file name and path 
+*/
 #include "pparser.h"
 #include "kernel.h"
 #include "string/string.h"

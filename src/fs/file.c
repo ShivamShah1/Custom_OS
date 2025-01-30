@@ -1,3 +1,6 @@
+/*
+    This is a source file which helps to create a FAT16 readable file
+*/
 #include "file.h"
 #include "config.h"
 #include "memory/memory.h"
