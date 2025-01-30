@@ -13,6 +13,7 @@
 #include "fs/file.h"
 #include "config.h"
 #include "gdt/gdt.h"
+#include "task/tss.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -104,11 +105,18 @@ void panic(const char* msg){
     while(1){}
 }
 
+/*
+    to declare the user and kernel segments
+*/
+struct tss tss;
 struct gdt gdt_real[PEACHOS_TOTAL_GDT_SEGMENTS];
 struct gdt_structured gdt_structured[PEACHOS_TOTAL_GDT_SEGMENTS] = {
-    {.base = 0x00, .limit = 0x00, .type = 0x00},        // NULL segment
-    {.base = 0x00, .limit = 0xffffffff, .type = 0x9a},  // kernel code segment
-    {.base = 0x00, .limit = 0xffffffff, .type = 0x92}   // kernel data segment
+    {.base = 0x00, .limit = 0x00, .type = 0x00},                    // NULL segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0x9a},              // kernel code segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0x92},              // kernel data segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0xf8},              // user code segment
+    {.base = 0x00, .limit = 0xffffffff, .type = 0xf2},              // user data segment
+    {.base = (uint32_t)&tss, .limit = sizeof(tss), .type = 0xE9}    // tss segment
 };
 
 void kernel_main(){
@@ -176,6 +184,21 @@ void kernel_main(){
         initialize the interrupt descriptor table 
     */
     idt_init();
+
+    /*
+        implementing tss for task switching between user and kernel
+
+        here every time process is hand overed the kernel it will 
+        set its pointer to 0x600000, this is the kernel stack location
+        and when it is returned to user space the location will be reset to 
+        0x00.
+    */
+    memset(&tss, 0x00, sizeof(tss));
+    tss.esp0 = 0x600000;    // kernel stack location
+    tss.ss0 = KERNEL_DATA_SELECTOR;
+
+    /* load the tss */
+    tss_load(0x28); // this is the offset of gdt_real 
 
     /*
         Providing 4096 bytes of chunk to a single page and
