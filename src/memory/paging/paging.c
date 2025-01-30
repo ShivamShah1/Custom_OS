@@ -101,6 +101,81 @@ out:
     return res;
 }
 
+/*
+    making sure that virtual and physical pages are alligned properly
+*/
+void* paging_is_alligned_address(void* ptr){
+    if((uint32_t)ptr % PAGING_PAGE_SIZE){
+        return (void*)((uint32_t)ptr + PAGING_PAGE_SIZE - ((uint32_t)ptr % PAGING_PAGE_SIZE));
+    }
+
+    return ptr;
+}
+
+/*
+    making sure that virtual and physical pages are mapped properly
+*/
+int paging_map(uint32_t* directory, void* virt, void* phys, int flags){
+    if(((unsigned int)virt % PAGING_PAGE_SIZE) || ((unsigned int)phys % PAGING_PAGE_SIZE)){
+        return -EINVARG;
+    }
+
+    return paging_set(directory, virt, (uint32_t)phys | flags);
+}
+
+/*
+    mapping the range of paging of the process
+*/
+int paging_map_range(uint32_t* directory, void* virt, void* phys, int count, int flags){
+    int res = 0;
+    for(int i=0; i<count; i++){
+        res = paging_map(directory, virt, phys, flags);
+        if(res == 0){
+            break;
+        }
+        virt += PAGING_PAGE_SIZE;
+        phys += PAGING_PAGE_SIZE;
+    }
+
+    return res;
+}
+
+/*
+    ensruring the paging is mapped to the process
+*/
+int paging_map_to(uint32_t* directory, void* virt, void* phys, void* phys_end, int flags){
+    int res = 0;
+    if((uint32_t)virt % PAGING_PAGE_SIZE){
+        res = -EINVARG;
+        goto out;
+    }
+
+    if((uint32_t)phys % PAGING_PAGE_SIZE){
+        res = -EINVARG;
+        goto out;
+    }
+
+    if((uint32_t)phys_end % PAGING_PAGE_SIZE){
+        res = -EINVARG;
+        goto out;
+    }
+
+    if((uint32_t)phys_end < (uint32_t)phys){
+        res = -EINVARG;
+        goto out;
+    }
+
+    uint32_t total_bytes = phys_end - phys;
+    int total_pages = total_bytes / PAGING_PAGE_SIZE;
+    res = paging_map_range(directory, virt, phys, total_pages, flags);
+
+out:
+    return res;
+}
+
+/*
+    ensures that the paging is set and usable
+*/
 int paging_set(uint32_t* directory, void* virt, uint32_t val){
     if(!pagin_is_aligned(virt)){
         return -EINVARG;

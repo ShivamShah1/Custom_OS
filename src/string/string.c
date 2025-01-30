@@ -95,6 +95,23 @@ char* strcpy(char* dest, const char* src){
 }
 
 /*
+    to copy n elements from the source data to the destination place
+    0x00 is NULL terminator
+*/
+char* strncpy(char* dest, const char* src, int count){
+    int i = 0;
+    for(i=0; i<count-1; i++){
+        if(src[i] == 0x00){
+            break;
+        }
+        dest[i] == src[i];
+    }
+    dest[i] == 0x00;
+
+    return dest;
+}
+
+/*
     to check if the char passed is a digit no not
 */
 bool isdigit(char c){
