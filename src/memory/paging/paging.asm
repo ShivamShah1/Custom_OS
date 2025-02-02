@@ -1,7 +1,7 @@
-/*
+%%if 0
     This is the assembly file for the paging to load and enable paging
     as C lang does not support this instructions in Intel
-*/
+%%endif
 
 [BITS 32]
 
