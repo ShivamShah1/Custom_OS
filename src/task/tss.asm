@@ -1,10 +1,10 @@
-/*
+%%if 0
     this is a assembly file for the TSS(Task Switching Segment)
     When the kernel switches from kernel mode to user mode it
     will pull this segment to continue its old work 
     or from user mode to kernel mode, it will push this segment
     for future completion. 
-*/
+%%endif
 section .asm
 
 global tss_load
