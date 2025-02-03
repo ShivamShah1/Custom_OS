@@ -1,4 +1,4 @@
-/*
+%%if 0
     First we need to specify the origin so that Os knows the offset needed for the data
     Ideally the origin should be 0x0000 and then the system should jump to the 
     designated location in the case of this system is 0x7c00.
@@ -18,9 +18,9 @@
     are not enough to fill 510 bytes then it will pad it with 0's.
 
     Now then providing the boot signature which is 0x55AA, but we are writing here 0xAA55 due to endianess.
-*/
+%%endif
 
-/*
+%%if 0
     Use Makefile1 for build
     
     Now to run this in the system using qemu we will first create a binary file '.bin'.
@@ -34,9 +34,9 @@
 
     Now to run on qemu use this cmd
         cmd - 'qemu-system-x86_64 -hda ./boot.bin'
-*/
+%%endif
 
-/*
+%%if 0
 ORG 0x7c00
 BITS 16
 
@@ -50,10 +50,10 @@ start:
 
 times 510-($ - $$) db 0
 dw 0xAA55
-*/
+%%endif
 
 
-/*
+%%if 0
     Use Makefile1 for build
     
     To print custom message on the booting screen we will use the below code.
@@ -87,10 +87,10 @@ message: db 'Hello World!', 0
 times 510-($ - $$) db 0
 dw 0xAA55
 
-*/
+%%endif
 
 
-/*
+%%if 0
     Use Makefile1 for build
     
     Ideally we place our start point 0x0000 and we jump from that to the desired location.
@@ -148,10 +148,10 @@ message: db 'Hello World!', 0
 
 times 510-($ - $$) db 0
 dw 0xAA55
-*/
+%%endif
 
 
-/*
+%%if 0
     Use Makefile1 for build
     
     This section we will write and call custom interrupts for Real Mode. 
@@ -231,11 +231,11 @@ message: db 'Hello World!', 0
 
 times 510-($ - $$) db 0
 dw 0xAA55
-*/
+%%endif
 
 
 
-/*
+%%if 0
     Use Makefile1 for build
 
     Removing the unnecessary things from the code like interrupts and able to read the message.txt
@@ -305,10 +305,10 @@ times 510-($ - $$) db 0
 dw 0xAA55
 
 buffer:
-*/
+%%endif
 
 
-/*
+%%if 0
     For here use Makefile2 and earlier use Makefile1
 
     To start the processor in the protected mode after the real mode.
@@ -410,10 +410,10 @@ load32:
 
 times 510-($ - $$) db 0
 dw 0xAA55
-*/
+%%endif
 
 
-/*
+%%if 0
     From here use Makefile and earlier use Makefile1
 
     Now we are creating another file called kernel.asm so we are using this
@@ -554,14 +554,14 @@ ata_lba_read:
 
 times 510-($ - $$) db 0
 dw 0xAA55
-*/
+%%endif
 
-/*
+%%if 0
     From here use Makefile and earlier use Makefile1
 
     In this we are adding FAT16 system to our booting 
     part so that kernel knows how to read the files.
-*/
+%%endif
 ORG 0x7c00
 BITS 16
 
