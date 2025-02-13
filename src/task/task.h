@@ -12,8 +12,11 @@
 #include "memory/heap/kheap.h"
 #include "memory/memory.h"
 #include "process.h"
+#include "idt/idt.h"
+
 #include <stdint.h>
 
+struct interrupt_frame;
 /*
     here we are creating structures for register as we 
     need to move and store registers as moving from kernel 
@@ -68,5 +71,8 @@ void task_run_first_ever_task();
 void task_return(struct registers* process);
 void restore_general_purpose_registers(struct registers* regs);
 void user_registers();
+
+/* saving the task */
+void task_current_save_state(struct interrupt_frame* frame);
 
 #endif

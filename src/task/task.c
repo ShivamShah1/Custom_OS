@@ -38,6 +38,7 @@ struct task* task_new(struct process* process){
     if(task_head == 0){
         task_head = task;
         task_tail = task;
+        current_task = task;
         goto out;
     }
 
@@ -104,8 +105,39 @@ int task_free(struct task* task){
 */
 int task_switch(struct task* task){
     current_task = task;
-    paging_switch(task->page_directory->directory_entry);
+    paging_switch(task->page_directory);
     return 0;
+}
+
+/*
+    To save the task as interrupt called so when interrupt returns, kernel starts
+    from the place where it paused 
+*/
+void task_save_state(struct task* task, struct interrupt_frame* frame){
+    task->registers.ip = frame->ip;
+    task->registers.cs = frame->cs;
+    task->registers.flags = frame->flags;
+    task->registers.esp = frame->esp;
+    task->registers.ss = frame->ss;
+    task->registers.eax = frame->eax;
+    task->registers.ebp = frame->ebp;
+    task->registers.ebx = frame->ebx;
+    task->registers.ecx = frame->ecx;
+    task->registers.edi = frame->edi;
+    task->registers.edx = frame->edx;
+    task->registers.esi = frame->esi;
+}
+
+/*
+    to save the current stage of the process
+*/
+void task_current_save_state(struct interrupt_frame* frame){
+    if(!task_current()){
+        panic("No current task to save\n");
+    }
+
+    struct task* task = task_current();
+    task_save_state(task, frame);
 }
 
 /*
@@ -148,6 +180,7 @@ int task_init(struct task* task, struct process* process){
     /* for the first time program counter will point to the virtual address of process */
     task->registers.ip = PEACHOS_PROGRAM_VIRTUAL_ADDRESS;
     task->registers.ss = USER_DATA_SEGMENT;
+    task->registers.cs = USER_CODE_SEGMEnt;
     task->registers.esp = PEACHOS_PROGRAM_VIRTUAL_STACK_ADDRESS_STATE;
 
     task->process = process;

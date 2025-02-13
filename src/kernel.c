@@ -14,6 +14,10 @@
 #include "config.h"
 #include "gdt/gdt.h"
 #include "task/tss.h"
+#include "task/task.h"
+#include "task/process.h"
+#include "status.h"
+#include "isr80h/isr80h.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -106,6 +110,15 @@ void panic(const char* msg){
 }
 
 /*
+    Will switch page directory from kernel page directory
+    and also change from registers from kernel registers
+*/
+void kernel_page(){
+    kernel_registers();
+    paging_switch(kernel_chunk);
+}
+
+/*
     to declare the user and kernel segments
 */
 struct tss tss;
@@ -120,32 +133,6 @@ struct gdt_structured gdt_structured[PEACHOS_TOTAL_GDT_SEGMENTS] = {
 };
 
 void kernel_main(){
-    /*
-        here we will see a letter 'A' in blue colour at the booting process with other data
-        on the screen.
-
-        To run this run ./build.sh in cmd list and then go to bin dir and then run the
-        'qemu-system-x86_64 -hda ./os.bin' 
-
-    char* video_mem = (char*)(0xB8000);
-    video_mem[0] = 'A';
-    video_mem[1] = 1;
-    video_mem[2] = 'B';
-    video_mem[3] = 2;
-    */
-
-    /*
-        Here we know this uses 2 bytes so we use uint_16 for more precision.
-        
-        For this we need to change the values which we provides like
-        we know A=0x41 and 1=0x01, so we will provide as '0x4101'.
-
-        Here we need to provide 0x0141 because of edianess.
-    
-    uint16_t* video_mem = (uint16_t*)(0xB8000);
-    video_mem[0] = 0x0141;
-    */
-
     /*
         Everytime its not good to provide it with hex values.
 
@@ -207,13 +194,6 @@ void kernel_main(){
     kernel_chunk = paging_new_4gb(PAGING_IS_WRITEABLE | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL);
 
     /*
-        To directly read from the location into buffer
-    
-    char buf[512];
-    disk_read_block(disk_get(0), 20, 4, &buf);
-    */
-
-    /*
         In-charge of switching pages as in paging there is no contigous memory location.
         So, if the memory is contigous then there is no meaning of paging.
 
@@ -222,37 +202,7 @@ void kernel_main(){
         
         paging_4gb_chunk_get_directory is for getting location of page.
     */
-    paging_switch(paging_4gb_chunk_get_directory(kernel_chunk));
-
-    /*
-        mapping the memory
-    
-    char *ptr = kzalloc(4096);
-    */
-
-    /*
-        setting up for paging, so here in virtual addr 0x1000 should map to the ptr addr. 
-        So if we use another ptr pointing to 0x1000, the data will be same as even though
-        physical address is different as it is mapped to 0x1000 on virtual address.
-    
-    paging_set(paging_4gb_chunk_get_directory(kernel_chunk), (void*)0x1000, (uint32_t)ptr | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
-    */
-
-    /*
-        testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
-        and the above ptr is pointing to 0x1000 virtual address having different physical address.
-
-        Here we have not yet implemented the enable_pagin(), so it is not enabled. =
-        So by changing the values at ptr2, we will not change the data at different physical address. 
-
-        Output- ptr2 -AB and ptr - empty.
-    
-    char* ptr2 = (char*) 0x1000;
-    ptr2[0] = 'A';
-    ptr2[1] = 'B';
-    print(ptr2);
-    print(ptr);
-    */
+    paging_switch(kernel_chunk);
 
     /*
         enabling the paging
@@ -260,145 +210,20 @@ void kernel_main(){
     enable_paging;
 
     /*
-        sometimes setting paging, it disables or triggers unneccessay interrupts
+        registering kernel commands
     */
-    enable_interrupts;
+    isr80h_register_commands();
 
     /*
-        using path parser to move from one part to another
-    
-    struct path_root* root_path = pathparser_parse("0:/bin/shell.exe", NULL);
-    if(root_path){
-
-    }
+        providing the process
     */
-    
-    /*
-        Assigning disk 0 to read, then selecting single byte to read which is
-        0x201 and storing that location data to c.
-    
-    struct disk_stream* stream = diskstreamer_new(0);
-    diskstreamer_seek(stream, 0x201);
-    unsigned char c = 0;
-    diskstreamer_read(stream, &c, 1);
-        to hold to see the data in qemu
-    while(1){}
-    */
-    
-    /*
-        to check if the strcpy works properly
-    
-    char buf[20];
-    strcpy(buf, "hello!");
-    */
-
-    /*
-        testing the fat16 implementation using file descriptor using fopen, fread and fseek.
-
-        first fd is created and from that, it will look for a file name hello.txt
-        if it finds then loads its directory and items.
-        Once loaded, we can now read and write into them in streams also.
-    
-    int fd = fopen("0:/hello.txt", "r");
-    if(fd){
-        print("\n we opend hello.txt file \n");
-        char buf[14];
-        fseek(fd, 2, SEEK_SET);
-        // now reading from pos 2 instead of 0
-        fread(buf, 11, 1, fd);
-        // NULL terminator 
-        buf[13] = 0x00;
-        print(buf);
-    }
-    */
-
-    /*
-        testing filesystem using file programs
-    */
-    int fd = fopen("0:/hello.txt", "r");
-    print("\n file opened\n");
-    if(fd){
-        struct file_stat s;
-        fstat(fd, &s);
-        print("\n status of file\n");
-        fclose(fd);
-        print("\n file closed\n");
+    struct process* process = 0;
+    int res = process_load("0:/blank.bin", &process);
+    if(res != PEACHOS_ALL_OK){
+        panic("Failed to load blank.bin\n");
     }
 
-    /*
-        reading into the buffer
-        Place the init code for disk at the start of the kernel so that it init the disk
-        at the start so that it is easy to map and access the location through an interface.
+    task_run_first_ever_task();
 
-        We can directly use the below without disk init, but a proper interface wont be create to regualrlly
-        and randomly accessing the data using API. We will need to know the exact location in the 
-        physical memory for paging and maping.
- 
-    char buf[512];
-    disk_read_sector(0, 1, buf);
-    */
-
-    /*
-        testing the above mapping mechanism in working as we have a ptr pointing to 0x1000 virtual address
-        and the above ptr is pointing to 0x1000 virtual address having different physical address.
-
-        Here we have enabled paging  
-        So by changing the values at ptr2, we will change the data at different physical address. 
-
-        Output - ptr2 - AB and ptr - AB.
-    
-    char* ptr2 = (char*) 0x1000;
-    ptr2[0] = 'A';
-    ptr2[1] = 'B';
-    print(ptr2);
-    print(ptr);
-    */
-
-    void* ptr = kmalloc(50);
-    void* ptr2 = kmalloc(5000);
-    void* ptr3 = kmalloc(5600);
-    kfree(ptr);
-    void* ptr4 = kmalloc(50);
-    /* here we are using this to see if we have aloocated memory or not 
-    if( ptr || ptr2 || ptr3 || ptr4){
-
-    }
-    */
-    kfree(ptr2);
-    kfree(ptr3);
-    kfree(ptr4);
-    /*
-        disable interrupts so the system does not get interrupted while doing this 
-    */
-    disable_interrupts();
-
-    /*
-        generating an interrupt as we are dividing it number by zero 
-    */
-    problem();
-
-    /*
-        enabling interrupts so the system does get interrupted for another interrupts 
-    */
-    enable_interrupts();
-
-    /*
-        using io to provide output this char
-        The below code after outb is to do io using interrupts
-    
-    outb(0x60, 0xff);
-    */
-
-    /*
-        the above one is to directly call the i/o
-        This is used to handle the i/o using interrupts
-
-        We are using keyboard to call this interrupt.
-        
-        this way we are only taking interrupt from keyboard only once
-        so we need will change it that is takes interrupt everytime.  
-
-        If we change the interrupt from 0x21 to 0x20, as 20 is for timer
-        then we will get continous interrupt on the screen for keyboard.
-    */
+    while(1) {}
 }
