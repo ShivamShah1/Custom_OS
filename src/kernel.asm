@@ -2,6 +2,8 @@
 
 global _start
 global problem
+global kernel_registers
+
 extern kernel_main
 
 CODE_SEG equ 0x08
@@ -40,6 +42,14 @@ _start:
     call kernel_main
 
     jmp $
+
+kernel_registers:
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov gs, ax
+    mov fs, ax
+    ret
 
 problem:
     ; in idt.c there we are declaring int 0 for how to manage it

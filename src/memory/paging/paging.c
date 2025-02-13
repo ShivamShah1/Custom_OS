@@ -55,9 +55,9 @@ struct paging_4gb_chunk* paging_new_4gb(uint8_t flags){
     So, to get the data properly as the location of the data is scatter all the 
     place, to retrive the data properly we use page switching method. 
 */
-void paging_switch(uint32_t* directory){
-    paging_load_directory(directory);
-    current_directory = directory;
+void paging_switch(struct paging_4gb_chunk* directory){
+    paging_load_directory(directory->directory_entry);
+    current_directory = directory->directory_entry;
 }
 
 /*
@@ -115,18 +115,18 @@ void* paging_is_alligned_address(void* ptr){
 /*
     making sure that virtual and physical pages are mapped properly
 */
-int paging_map(uint32_t* directory, void* virt, void* phys, int flags){
+int paging_map(struct paging_4gb_chunk* directory, void* virt, void* phys, int flags){
     if(((unsigned int)virt % PAGING_PAGE_SIZE) || ((unsigned int)phys % PAGING_PAGE_SIZE)){
         return -EINVARG;
     }
 
-    return paging_set(directory, virt, (uint32_t)phys | flags);
+    return paging_set(directory->directory_entry, virt, (uint32_t)phys | flags);
 }
 
 /*
     mapping the range of paging of the process
 */
-int paging_map_range(uint32_t* directory, void* virt, void* phys, int count, int flags){
+int paging_map_range(struct paging_4gb_chunk* directory, void* virt, void* phys, int count, int flags){
     int res = 0;
     for(int i=0; i<count; i++){
         res = paging_map(directory, virt, phys, flags);
@@ -143,7 +143,7 @@ int paging_map_range(uint32_t* directory, void* virt, void* phys, int count, int
 /*
     ensruring the paging is mapped to the process
 */
-int paging_map_to(uint32_t* directory, void* virt, void* phys, void* phys_end, int flags){
+int paging_map_to(struct paging_4gb_chunk* directory, void* virt, void* phys, void* phys_end, int flags){
     int res = 0;
     if((uint32_t)virt % PAGING_PAGE_SIZE){
         res = -EINVARG;
