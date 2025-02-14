@@ -18,6 +18,7 @@
 #include "task/process.h"
 #include "status.h"
 #include "isr80h/isr80h.h"
+#include "keyboard/keyboard.h"
 
 uint16_t* video_mem = 0;
 uint16_t terminal_row = 0;
@@ -214,6 +215,9 @@ void kernel_main(){
     */
     isr80h_register_commands();
 
+    /* initialize the virtual keyboard */
+    keyboard_init();
+    
     /*
         providing the process
     */
