@@ -13,6 +13,8 @@
 #include "memory/memory.h"
 #include "process.h"
 #include "idt/idt.h"
+#include "memory/paging/paging.h"
+#include "string/string.h"
 
 #include <stdint.h>
 
@@ -74,5 +76,8 @@ void user_registers();
 
 /* saving the task */
 void task_current_save_state(struct interrupt_frame* frame);
+int copy_string_from_task(struct task* task, void* virtual, void* phys, int max);
+void* task_get_stack_item(struct task* task, int index);
+int task_page_task(struct task* task);
 
 #endif
