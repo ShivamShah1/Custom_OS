@@ -8,12 +8,23 @@ section .asm
 global _start
 
 _start:
-    push message
-    mov eax, 1 ; command print
+
+; looping to print multilple character on screen or terminal
+_loop:
+    call getkey
+    push eax
+    mov eax, 3 ; command putchar
     int 0x80
     add esp, 4
-    
-    jmp $
+    jmp _loop
+
+; provides next key to be popped from the buffer
+getkey:
+    mov eax, 2 ; command getkey
+    int 0x80
+    cmp eax, 0x00
+    je getkey
+    ret
 
 section .data
 message: db 'This is from user space', 0
