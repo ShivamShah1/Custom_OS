@@ -132,6 +132,13 @@ struct gdt_structured gdt_structured[PEACHOS_TOTAL_GDT_SEGMENTS] = {
     {.base = 0x00, .limit = 0xffffffff, .type = 0xf2},              // user data segment
     {.base = (uint32_t)&tss, .limit = sizeof(tss), .type = 0xE9}    // tss segment
 };
+/*
+    used for timer callback interrupt
+    
+void pic_timer_callback(){
+    print("timer activated\n");
+}
+*/
 
 void kernel_main(){
     /*
@@ -215,14 +222,28 @@ void kernel_main(){
     */
     isr80h_register_commands();
 
-    /* initialize the virtual keyboard */
+    /* 
+        initialize the virtual keyboard
+    */
     keyboard_init();
+    
+    /*
+        registering timer with 0x20 interrupt
+        as first interrupt is timer, and next is keyboard
+        so 0x21 link with keyboard
+        
+        so when we link it with time, it will continously does the
+        pic_timer_callback fuction as timer interrupt will occur 
+        all the time. 
+    
+    idt_register_interrupt_callback(0x20, pic_timer_callback);
+    */
     
     /*
         providing the process
     */
     struct process* process = 0;
-    int res = process_load("0:/blank.bin", &process);
+    int res = process_load_switch("0:/blank.bin", &process);
     if(res != PEACHOS_ALL_OK){
         panic("Failed to load blank.bin\n");
     }
