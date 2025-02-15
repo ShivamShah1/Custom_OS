@@ -8,10 +8,21 @@
 #include "memory/memory.h"
 #include "io/io.h"
 #include "task/task.h"
+#include "status.h"
 
 struct idt_desc idt_descriptors[PEACHOS_TOTAL_INTERRUPTS];
 struct idtr_desc idtr_descriptor;
 
+/*
+    the idea of creating this table is to have the address of the interrupts
+    created in idt.asm code, as we do not have the address of the created
+    interrupts. 
+    So we will use this table to to map the interrupt generated in .asm file
+    by storing that address using this table.
+*/
+extern void* interrupt_pointer_table[PEACHOS_TOTAL_INTERRUPTS];
+
+static INTERRUPT_CALLBACK_FUNCTION interrupt_callbacks[PEACHOS_TOTAL_INTERRUPTS];
 static ISR80H_COMMAND isr80h_commands[PEACHOS_MAX_ISR80H_COMMANDS];
 
 /*
@@ -23,22 +34,24 @@ extern void no_interrupt();
 extern void isr80h_wrapper();
 
 /*
-    IO interrupt to recognize the keyboard interrupt
-    here the keyboard interrupt is IRQ 1 and the IRQ
-    address start from the location 0x20.
-
-    So, 21 is the location of int so we writing int21 
+    this is no interrupt handler so that is someother interrupt occur
+    it does not get struck in the bios mode
 */
-void int21h_handler(){
-    print("Keyboard pressed!\n");
+void no_interrupt_handler(){
     outb(0x20, 0x20);
 }
 
 /*
-    this is no interrupt handler so that is someother interrupt occur
-    it does not get struct in the bios mode
+    to handle the interrupts
 */
-void no_interrupt_handler(){
+void interrupt_handler(int interrupt, struct interrupt_frame* frame){
+    kernel_page();
+    if(interrupt_callbacks[interrupt] != 0){
+        task_current_save_state(frame);
+        interrupt_callbacks[interrupt](frame);
+    }
+
+    task_page();
     outb(0x20, 0x20);
 }
 
@@ -69,18 +82,31 @@ void idt_init(){
     idtr_descriptor.limit = sizeof(idt_descriptors) -1;
     idtr_descriptor.base = (uint32_t)idt_descriptors;
 
+    /* mapping the generated address to the table */
     for(int i=0; i<PEACHOS_TOTAL_INTERRUPTS; i++){
-        idt_set(i, no_interrupt);
+        idt_set(i, interrupt_pointer_table[i]);
     }
     
     idt_set(0, idt_zero);
-    idt_set(0x21, int21h);
     idt_set(0x80, isr80h_wrapper);
 
     /*
         load the interrupt descriptor table
     */ 
     idt_load(&idtr_descriptor);
+}
+
+/*
+    this is to register interrupt callback with the table
+*/
+int idt_register_interrupt_callback(int interrupt, INTERRUPT_CALLBACK_FUNCTION interrupt_callback){
+    if(interrupt < 0 || interrupt >= PEACHOS_TOTAL_INTERRUPTS){
+        return -EINVARG;
+    }
+
+    interrupt_callbacks[interrupt] = interrupt_callback;
+    
+    return 0;
 }
 
 /*
