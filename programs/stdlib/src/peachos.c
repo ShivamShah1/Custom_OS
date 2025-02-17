@@ -3,6 +3,56 @@
 */
 
 #include "peachos.h"
+#include "string.h"
+
+/*
+    breaking the terminal line into tokens
+*/
+struct command_argument* peachos_parse_command(const char* command, int max){
+    /* creating root token */
+    struct command_argument* root_command = 0;
+    /* second word */
+    char scommand[1024];
+    if(max >= (int)sizeof(scommand)){
+        return 0;
+    }
+
+    /* copying the second word and creating token */
+    strncpy(scommand, command, sizeof(scommand));
+    char* token = strtok(scommand, " ");
+    if(!token){
+        goto out;
+    }
+
+    /* allocating memory for root token */
+    root_command = peachos_malloc(sizeof(struct command_argument));
+    if(!root_command){
+        goto out;
+    }
+    
+    /*  assigning memory with values */
+    strncpy(root_command->argument, token, sizeof(root_command->argument));
+    root_command->next = 0;
+
+    /* forming chain like linked list of tokens */
+    struct command_argument* current = root_command;
+    token = strtok(NULL, " ");
+    while(token != 0){
+        struct command_argument* new_command = peachos_malloc(sizeof(struct command_argument));
+        if(!new_command){
+            break;
+        }
+
+        strncpy(new_command->argument, token, sizeof(new_command->argument));
+        new_command->next = 0x00;
+        current->next = new_command;
+        current = new_command;
+        token = strtok(NULL, " ");
+    }
+
+out:
+    return root_command;
+};
 
 /*
     get the key and then block

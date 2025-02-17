@@ -1,6 +1,7 @@
 /*
-    string functions for kernel space
+    for pasing the data from sting procided in th shell
 */
+
 #include "string.h"
 
 /*
@@ -141,4 +142,56 @@ int strnlen(const char* ptr, int max){
     }
 
     return i;
+}
+
+char* sp = 0;
+
+/*
+    break a string into a sequence of tokens.
+*/
+char* strtok(char* str, const char* delimiters){
+    int i = 0;
+    int len = strlen(delimiters);
+    if(!str && !sp){
+        return 0;
+    }
+
+    if(str && !sp){
+        sp = str;
+    }
+
+    char* p_start = sp;
+    while(1){
+        for(i = 0; i < len; i++){
+            if(*p_start == delimiters[i]){
+                p_start++;
+                break;
+            }
+        }
+        if(i == len){
+            sp = p_start;
+            break;
+        }
+    }
+    if(*sp == '\0'){
+        sp = 0;
+        return sp;
+    }
+
+    /* find end of substring */
+    while(*sp != '\0'){
+        for(i = 0; i < len; i++){
+            if(*sp == delimiters[i]){
+                *sp = '\0';
+                break;
+            }
+        }
+
+        sp++;
+        if(i < len){
+            break;
+        }
+    }
+
+    return p_start;
 }
