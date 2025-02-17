@@ -17,6 +17,8 @@
 #include "memory/paging/paging.h"
 #include "loader/formats/elfloader.h"
 
+#include <stdbool.h>
+
 #define PROCESS_FILETYPE_ELF 0
 #define PROCESS_FILETYPE_BINARY 1
 
@@ -66,5 +68,7 @@ int process_load(const char* filename, struct process** process);
 int process_load_for_slot(const char* filename, struct process** process, int process_slot);
 struct process* process_current();
 struct process* process_get(int process_id);
+static int process_find_free_allocation_index(struct process* process);
+void process_free(struct process* process, void* ptr);
 
-#endif PROCESS_H
+#endif
