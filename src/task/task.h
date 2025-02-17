@@ -15,6 +15,7 @@
 #include "idt/idt.h"
 #include "memory/paging/paging.h"
 #include "string/string.h"
+#include "loader/formats/elfloader.h"
 
 #include <stdint.h>
 

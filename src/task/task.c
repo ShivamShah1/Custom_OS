@@ -226,6 +226,10 @@ int task_init(struct task* task, struct process* process){
 
     /* for the first time program counter will point to the virtual address of process */
     task->registers.ip = PEACHOS_PROGRAM_VIRTUAL_ADDRESS;
+    /* if the file is in elf format */
+    if(process->filetype == PROCESS_FILETYPE_ELF){
+        task->registers.ip = elf_header(process->elf_file)->e_entry;
+    }
     task->registers.ss = USER_DATA_SEGMENT;
     task->registers.cs = USER_CODE_SEGMEnt;
     task->registers.esp = PEACHOS_PROGRAM_VIRTUAL_STACK_ADDRESS_STATE;
