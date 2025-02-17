@@ -24,6 +24,11 @@
 
 typedef unsigned char PROCESS_FILETYPE;
 
+struct process_allocation{
+    void* ptr;
+    size_t size;
+};
+
 /*
     This is the structure of all the processes which will be created in this system
 */
@@ -38,7 +43,7 @@ struct process{
 
     /* this is to track the memory allocated by the kernel */
     /* so we can free them at the termination of program */
-    void* allocations[PEACHOS_MAX_PROGRAM_ALLOCATIONS];
+    struct process_allocation allocations[PEACHOS_MAX_PROGRAM_ALLOCATIONS];
 
     PROCESS_FILETYPE filetype;
     union

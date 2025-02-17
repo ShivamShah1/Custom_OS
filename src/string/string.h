@@ -1,3 +1,6 @@
+/*
+    string functions for kernel space
+*/
 #ifndef STRING_H
 #define STRING_H
 

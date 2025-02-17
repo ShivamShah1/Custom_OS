@@ -5,13 +5,17 @@
 #include "peachos.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 
 /*
     normal user program
 */
 int main(int argc, char** argv){
 
-    printf("my age is %i\n", 25);
+    char str[] = "hello world";
+    struct command_argument* root_command = peachos_parse_command(str, sizeof(str));
+    printf("%s\n", root_command->argument);
+    printf("%s\n", root_command->next->argument);
     
     while(1){
         

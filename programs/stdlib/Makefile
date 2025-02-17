@@ -1,4 +1,4 @@
-FILES=./build/start.o ./build/peachos.asm.o ./build/stdlib.o ./build/stdio.o ./build/peachos.o
+FILES=./build/start.o ./build/peachos.asm.o ./build/stdlib.o ./build/stdio.o ./build/peachos.o ./build/string.o ./build/memory.o
 INCLUDES= =-I./src
 FLAGS= -g -falign-jumps -falign-functions -falign-lables -falign-loops -fstrength-reduce -fomit-frame-pointer -finline-functions -Wno-unused-function -fno-builtin -Werror -Wno-cpp -Wno-unused-parameter -nostdlib -nostartfiles -nodefaultlibs -Wall -O0 -Iinc
 
@@ -19,6 +19,12 @@ all: $(FILES)
 
 ./build/peachos.o: ./src/peachos.c
 	i686-elf-gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/peachos.c -o ./build/peachos.o
+
+./build/string.o: ./src/string.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/string.c -o ./build/string.o
+
+./build/memory.o: ./src/memory.c
+	i686-elf-gcc $(INCLUDES) $(FLAGS) -std=gnu99 -c ./src/memory.c -o ./build/memory.o
 
 clean:
 	rm -rf $(FILES)

@@ -48,7 +48,7 @@ int process_switch(struct process* process){
 static int process_find_free_allocation_index(struct process* process){
     int res = -ENOMEM;
     for(int i = 0; i < PEACHOS_MAX_PROGRAM_ALLOCATIONS; i++){
-        if(process->allocations[i] == 0){
+        if(process->allocations[i].ptr == 0){
             res = i;
             break;
         }
@@ -63,16 +63,24 @@ static int process_find_free_allocation_index(struct process* process){
 void* process_malloc(struct process* process, size_t size){
     void* ptr = kzalloc(size);
     if(!ptr){
-        return 0;
+        goto out_err;
     }
 
     int index = process_find_free_allocation_index(process);
     if(index < 0){
-        return 0;
+        goto out_err;
     }
 
-    process->allocations[index] = ptr;
+    int res = paging_map_to(process->task->page_directory, ptr, ptr, paging_is_alligned_address(ptr + size), PAGING_IS_WRITEABLE | PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL);
+    process->allocations[index].ptr = ptr;
+    process->allocations[index].size = size;
     return ptr;
+
+out_err:
+    if(ptr){
+        kfree(ptr);
+    }
+    return 0;
 }
 
 /*
@@ -80,7 +88,7 @@ void* process_malloc(struct process* process, size_t size){
 */
 static bool process_is_process_pointer(struct process* process, void* ptr){
     for(int i = 0; i < PEACHOS_MAX_PROGRAM_ALLOCATIONS; i++){
-        if(process->allocations[i] == ptr){
+        if(process->allocations[i].ptr == ptr){
             return true;
         }
     }
@@ -93,21 +101,42 @@ static bool process_is_process_pointer(struct process* process, void* ptr){
 */
 static void process_allocation_unjoin(struct process* process, void* ptr){
     for(int i = 0; i < PEACHOS_MAX_PROGRAM_ALLOCATIONS; i++){
-        if(process->allocations[i] == ptr){
-            process->allocations[i] == 0x00;
+        if(process->allocations[i].ptr == ptr){
+            process->allocations[i].ptr = 0x00;
+            process->allocations[i].size = 0;
         }
     }
+}
+
+/*
+    allocating the process with address
+*/
+static struct process_allocation* process_get_allocation_by_addr(struct process* process, void* addr){
+    for(int i = 0; i < PEACHOS_MAX_PROGRAM_ALLOCATIONS; i++){
+        if(process->allocations[i].ptr == addr){
+            return &process->allocations[i];
+        }
+    }
+
+    return 0;
 }
 
 /*
     freeing process memory
 */
 void process_free(struct process* process, void* ptr){
-    /* not this process pointer? then we cant free it */
-    if(!process_is_process_pointer(process, ptr)){
+    /* unlink the pages from the process for the given address */
+    struct process_allocation* allocation = process_get_allocation_by_addr(process, ptr);
+    if(!allocation){
+        /* its not this process pointer */
         return;
     }
 
+    int res = paging_map_to(process->task->page_directory, allocation->ptr, allocation->ptr, paging_is_alligned_address(allocation->ptr + allocation->size), 0x00);
+    if(res < 0){
+        return;
+    }
+    
     /* unjoin the allocated memory */
     process_allocation_unjoin(process, ptr);
 
@@ -188,7 +217,7 @@ static int process_load_data(const char* filename, struct process* process){
 */
 int process_map_binary(struct process* process){
     int res = 0;
-    paging_map_to(process->task->page_directory, (void*)PEACHOS_PROGRAM_VIRTUAL_ADDRESS, process->ptr, paging_align_address(process->ptr + process->size), PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
+    paging_map_to(process->task->page_directory, (void*)PEACHOS_PROGRAM_VIRTUAL_ADDRESS, process->ptr, paging_is_alligned_address(process->ptr + process->size), PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
     return res;
 }
 
@@ -208,7 +237,7 @@ static int process_map_elf(struct process* process){
         if(phdr->p_flags & PF_W){
             flags |= PAGING_IS_WRITEABLE;
         }
-        res = paging_map_to(process->task->page_directory, paging_align_to_lower_page((void*)phdr->p_vaddr), paging_align_to_lower_page(phdr_phys_address), paging_align_address(phdr_phys_address + phdr->p_memsz), flags);
+        res = paging_map_to(process->task->page_directory, paging_align_to_lower_page((void*)phdr->p_vaddr), paging_align_to_lower_page(phdr_phys_address), paging_is_alligned_address(phdr_phys_address + phdr->p_memsz), flags);
         if(ISERR(res)){
             break;
         }
@@ -242,7 +271,7 @@ int process_map_memory(struct process* process){
     }
 
     /* mapping the stack pointer */
-    paging_map_to(process->task->page_directory, (void*)PEACHOS_PROGRAM_VIRTUAL_STACK_ADDRESS_END, process->stack, paging_align_address(process->stack+PEACHOS_USER_PROGRAM_STACK_SIZE), PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
+    paging_map_to(process->task->page_directory, (void*)PEACHOS_PROGRAM_VIRTUAL_STACK_ADDRESS_END, process->stack, paging_is_alligned_address(process->stack+PEACHOS_USER_PROGRAM_STACK_SIZE), PAGING_IS_PRESENT | PAGING_ACCESS_FROM_ALL | PAGING_IS_WRITEABLE);
 out: 
     return res;
 }
