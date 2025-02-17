@@ -105,6 +105,13 @@ struct elf32_shdr* elf_section(struct elf_header* header, int index){
 }
 
 /*
+    provides pointer to the elf program header physical header
+*/
+void* elf_phdr_phys_address(struct elf_file* file, struct elf32_phdr* phdr){
+    return elf_memory(file) + phdr->p_offset;
+}
+
+/*
     returning the pointer to the string table of elf file
 */
 char* elf_str_table(struct elf_header* header){
