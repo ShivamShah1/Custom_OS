@@ -13,5 +13,6 @@
 #define ERDONLY 6
 #define EUNIMP 7
 #define EISTKN 8
+#define EINFORMAT 9
 
 #endif

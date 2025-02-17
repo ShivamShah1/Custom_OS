@@ -14,7 +14,8 @@
 */
 
 ENTRY(_start)
-OUTPUT_FORMAT(binary)
+/* to generate elf file for intel instead of binary file */
+OUTPUT_FORMAT(elf32-i386)
 SECTIONS
 {
     . = 0x400000;

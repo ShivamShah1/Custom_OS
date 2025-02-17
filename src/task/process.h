@@ -15,6 +15,12 @@
 #include "string/string.h"
 #include "kernel.h"
 #include "memory/paging/paging.h"
+#include "loader/formats/elfloader.h"
+
+#define PROCESS_FILETYPE_ELF 0
+#define PROCESS_FILETYPE_BINARY 1
+
+typedef unsigned char PROCESS_FILETYPE;
 
 /*
     This is the structure of all the processes which will be created in this system
@@ -32,9 +38,14 @@ struct process{
     /* so we can free them at the termination of program */
     void* allocations[PEACHOS_MAX_PROGRAM_ALLOCATIONS];
 
-    /* the physical pointer to the process memory */
-    void* ptr;
-
+    PROCESS_FILETYPE filetype;
+    union
+    {
+        /* the physical pointer to the process memory */
+        void* ptr;
+        struct elf_file* elf_file;
+    };
+    
     /* the physical pointer to the stack memory */
     void* stack;
 
