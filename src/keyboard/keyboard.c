@@ -74,6 +74,20 @@ void keyboard_backspace(struct process* process){
 }
 
 /*
+    set capsloack for lower and upper letters
+*/
+void keyboard_set_capslock(struct keyboard* keyboard, KEYBOARD_CAPS_LOCK_STATE state){
+    keyboard->capslock_state = state;
+}
+
+/*
+    gets capslock state
+*/
+KEYBOARD_CAPS_LOCK_STATE keyboard_get_capslock(struct keyboard* keyboard){
+    return keyboard->capslock_state;
+}
+
+/*
     push in the cahracter into the for virtual keyboard buffer
 */
 void keyboard_push(char c){

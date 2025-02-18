@@ -263,16 +263,29 @@ void kernel_main(){
     */
     
     /*
-        providing the process
+        providing the 1st task or process
     */
     struct process* process = 0;
-    int res = process_load_switch("0:/shell.elf", &process);
+    int res = process_load_switch("0:/blank.elf", &process);
     if(res != PEACHOS_ALL_OK){
-        panic("Failed to load shell.elf\n");
+        panic("Failed to load blank.elf\n");
     }
 
     struct command_argument argument;
     strcpy(argument.argument, "testing");
+    argument.next = 0x00;
+
+    process_inject_arguments(process, &argument);
+
+    /*
+        to run the 2nd task
+    */
+    res = process_load_switch("0:/blank.elf", &process);
+    if(res != PEACHOS_ALL_OK){
+        panic("Failed to load blank.elf\n");
+    }
+
+    strcpy(argument.argument, "abc");
     argument.next = 0x00;
 
     process_inject_arguments(process, &argument);
