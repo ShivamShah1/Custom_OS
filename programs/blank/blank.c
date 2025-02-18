@@ -11,11 +11,9 @@
     normal user program
 */
 int main(int argc, char** argv){
-
-    char str[] = "hello world";
-    struct command_argument* root_command = peachos_parse_command(str, sizeof(str));
-    printf("%s\n", root_command->argument);
-    printf("%s\n", root_command->next->argument);
+    for(int i = 0; i < argc; i++){
+        printf("%s\n", argv[i]);
+    }
     
     while(1){
         

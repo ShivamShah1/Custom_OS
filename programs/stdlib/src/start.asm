@@ -5,10 +5,10 @@
 
 global _start
 
-extern main
+extern c_start
 
 section .asm
 
 _start:
-    call main
+    call c_start
     ret
