@@ -122,6 +122,105 @@ static struct process_allocation* process_get_allocation_by_addr(struct process*
 }
 
 /*
+    terminates or frees the allocated memory 
+*/
+int process_terminate_allocations(struct process* process){
+    for(int i = 0; i < PEACHOS_MAX_PROGRAM_ALLOCATIONS; i++){
+        process_free(process, process->allocations[i].ptr);
+    }
+
+    return 0;
+}
+
+/*
+    frees binary data
+*/
+int process_free_elf_data(struct process* process){
+    elf_close(process->elf_file);
+    return 0;
+}
+
+/*
+    frees binary data
+*/
+int process_free_binary_data(struct process* process){
+    kfree(process->ptr);
+    return 0;
+}
+
+/*
+    frees program data
+*/
+int process_free_program_data(struct process* process){
+    int res = 0;
+    switch(process->filetype){
+        case PROCESS_FILETYPE_BINARY:
+            res = process_free_binary_data(process);
+            break;
+        
+        case PROCESS_FILETYPE_ELF:
+            res = process_free_elf_data(process);
+            break;
+        
+        default:
+            res = -EINVARG;
+    }
+
+    return res;
+}
+
+/*
+    switches the current process with any
+*/
+void process_switch_to_any(){
+    for(int i = 0; i <PEACHOS_MAX_PROCESSES; i++){
+        if(processes[i]){
+            process_switch(processes[i]);
+            return;
+        }
+    }
+
+    panic("No processes to switch to\n");
+}
+
+/*
+    removes proces from the array
+*/
+static void process_unlink(struct process* process){
+    processes[process->id] = 0x00;
+
+    if(current_process == process){
+        process_switch_to_any();
+    }
+}
+
+/*
+    terminate the process
+*/
+int process_terminate(struct process* process){
+    int res = 0;
+    res = process_terminate_allocations(process);
+    if(res < 0){
+        goto out;
+    }
+
+    res = process_free_program_data(process);
+    if(res < 0){
+        goto out;
+    }
+
+    /* free the process stack memroy*/
+    kfree(process->stack);
+    /* free the task */
+    task_free(process->task);
+    /* unlink the process from the process array */
+    process_unlink(process);
+
+out:
+    return res;
+}
+
+/*
     assinging agruments of the process
 */
 void process_get_arguments(struct process* process, int* argc, char** argv){
