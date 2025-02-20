@@ -11,12 +11,11 @@
     normal user program
 */
 int main(int argc, char** argv){
-    for(int i = 0; i < argc; i++){
-        printf("%s\n", argv[i]);
-    }
-    
+    /* continously runts the task */
+    /* kernel.c has 2 task, so runs both by switching using timer interrupts*/
+    /* like scheduler */
     while(1){
-        
+        print(argv[0]);
     }
 
     return 0;

@@ -25,9 +25,8 @@ task_return:
     push dword [ebx+40]
 
     ; push the flags
-    pushf
-    pop eax
-    or eax, 0x200
+    mov eax, [ebx+36]
+    or eax, 0x200 ; interrupt enable flag set
     push eax
 
     ; push the code segment
@@ -62,7 +61,7 @@ restore_general_purpose_registers:
     mov ecx, [ebx+20]
     mov eax, [ebx+24]
     mov ebx, [ebx+12]
-    pop epb
+    add esp, 4
     ret
 
 ; void user_registers();

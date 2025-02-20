@@ -87,3 +87,16 @@ void* isr80h_command8_get_program_arguments(struct interrupt_frame* frame){
     process_get_arguments(process, &arguments->argc, &arguments->argv);
     return (void*)0;
 }
+
+/*
+    creating an safe exit function to replace while(1){}
+    as only way to get out of program is system crash
+    and also safely exit from the program
+*/
+void* isr80h_command9_exit(struct interrupt_frame* frame){
+    struct process* process = task_current()->process;
+    process_terminate(process);
+    task_next();
+    
+    return 0;
+}

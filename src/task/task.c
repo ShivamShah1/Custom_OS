@@ -101,6 +101,19 @@ int task_free(struct task* task){
 }
 
 /*
+    gets the next task to ren and also returns in user level and space
+*/
+void task_next(){
+    struct task* next_task = task_get_next();
+    if(!next_task){
+        panic("no more tasks!!\n");
+    }
+
+    task_switch(next_task);
+    task_return(&next_task->registers);
+}
+
+/*
     switching the context of the tasks for task scheduling and task switching
 */
 int task_switch(struct task* task){

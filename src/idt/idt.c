@@ -9,6 +9,7 @@
 #include "io/io.h"
 #include "task/task.h"
 #include "status.h"
+#include "task/process.h"
 
 struct idt_desc idt_descriptors[PEACHOS_TOTAL_INTERRUPTS];
 struct idtr_desc idtr_descriptor;
@@ -75,6 +76,24 @@ void idt_set(int interrupt_no, void* address){
 }
 
 /*
+    to handle execption
+*/
+void idt_handler_exception(){
+    process_terminate(task_current()->process);
+    task_next();
+}
+
+/*
+    to change the task using timer interrupt
+*/
+void idt_clock(){
+    /* to enable interrupt */
+    outb(0x20, 0x20);
+    /* switch to next task */
+    task_next();
+} 
+
+/*
     the interrupts will be initialized which can be used later
 */
 void idt_init(){
@@ -90,9 +109,14 @@ void idt_init(){
     idt_set(0, idt_zero);
     idt_set(0x80, isr80h_wrapper);
 
-    /*
-        load the interrupt descriptor table
-    */ 
+    for(int i = 0; i < 0x20; i++){
+        idt_register_interrupt_callback(i, idt_handler_exception);
+    }
+
+    /* 0x20 is for timer interrupt */
+    idt_register_interrupt_callback(0x20, idt_clock);
+
+    /* load the interrupt descriptor table */ 
     idt_load(&idtr_descriptor);
 }
 

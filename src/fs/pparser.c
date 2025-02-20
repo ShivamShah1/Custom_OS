@@ -37,6 +37,10 @@ static int pathparser_get_drive_by_path(const char** path){
 static struct path_root* pathparser_create_root(int drive_number){
     struct path_root* path_r = kzalloc(sizeof(struct path_root));
 
+    if(!path_r){
+        return NULL;
+    }
+
     path_r->driver_no = drive_number;
     path_r->first = 0;;
     
@@ -48,6 +52,11 @@ static struct path_root* pathparser_create_root(int drive_number){
 */
 static const char* pathparser_get_path_part(const char** path){
     char* result_path_part = kzalloc(PEACHOS_MAX_PATH);
+
+    if(result_path_part){
+        return NULL;
+    }
+
     int i = 0;
     while(**path != '/' && **path != 0x00){
         result_path_part[i] = **path;
@@ -78,6 +87,10 @@ struct path_part* pathparser_parse_path_part(struct path_part* last_part, const 
     }
 
     struct path_part* part = kzalloc(sizeof(struct path_part));
+    if(!part){
+        kfree((void*)path_part_str);
+        return 0;
+    }
     part->part = path_part_str;
     part->next = 0x00;
 
@@ -106,28 +119,48 @@ void pathparser_free(struct path_root* root){
 struct path_root* pathparser_parse(const char* path, const char* current_directory_path){
     int res = 0;
     const char* tmp_path = path;
-    struct path_root* path_root = 0;
+    struct path_root* path_root = NULL;
+    struct path_part* first_part = NULL;
+    struct path_part* part =NULL;
 
     if(strlen(path) > PEACHOS_MAX_PATH){
+        res = -1;
+        goto out;
+    }
+
+    res = pathparser_get_drive_by_path(&tmp_path);
+    if(res < 0){
+        res = -1;
         goto out;
     }
 
     path_root = pathparser_create_root(res);
     if(!path_root){
+        res = -1;
         goto out;
     }
 
-    struct path_part* first_part = pathparser_parse_path_part(NULL, &tmp_path);
+    first_part = pathparser_parse_path_part(NULL, &tmp_path);
     if(!first_part){
+        res = -1;
         goto out;
     }
 
     path_root->first = first_part;
-    struct path_part* part = pathparser_parse_path_part(first_part,&tmp_path);
+    part = pathparser_parse_path_part(first_part,&tmp_path);
     while(part){
         part = pathparser_parse_path_part(part, &tmp_path);
     }
 
 out:
+    if(res < 0){
+        if(path_root){
+            kfree(path_root);
+            path_root = NULL;
+        }
+        if(first_part){
+            kfree(first_part);
+        }
+    }
     return path_root;
 };
