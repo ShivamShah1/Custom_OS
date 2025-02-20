@@ -21,11 +21,6 @@ _start:
     mov ebp, 0x00200000
     mov esp, ebp
 
-    ; enabling A20 line
-    in al, 0x92
-    or al, 2
-    out 0x92, al
-
     ; remap the master PIC (Programmable Interrupt Controller)
     ; ISR address start from 0x20
     ; so int 0 at 0x20, int 1 at 0x21, and so
@@ -34,6 +29,9 @@ _start:
 
     mov al, 0x20 ; interrupt 0x20 is where master ISR should start
     out 0x21, al
+
+    mov al, 0x04 ; ICW3
+    out ox21, al
 
     mov al, 00000001b
     out 0x21, al

@@ -154,6 +154,11 @@ FILE_MODE file_get_mode_by_string(const char* str){
 int fopen(const char* filename, const char* mode_str){
     int res = 0;
     struct path_root* root_path = pathparser_parse(filename, NULL);
+    struct disk* disk = NULL;
+    FILE_MODE mode = 0;
+    void* descriptor_private_data = NULL;
+    struct file_descriptor* desc = 0;
+
     if(!root_path){
         res = - EINVARG;
         goto out;
@@ -166,7 +171,7 @@ int fopen(const char* filename, const char* mode_str){
     }
 
     /* ensure the disk we are reading from exists */
-    struct disk* disk = disk_get(root_path->driver_no);
+    disk = disk_get(root_path->driver_no);
     if(!disk){
         res = -EIO;
         goto out;
@@ -177,19 +182,18 @@ int fopen(const char* filename, const char* mode_str){
         goto out;
     }
 
-    FILE_MODE mode = file_get_mode_by_string(mode_str);
+    mode = file_get_mode_by_string(mode_str);
     if(mode == FILE_MODE_INVALID){
         res = -EINVARG;
         goto out;
     }
 
-    void* descriptor_private_data = disk->filesystem->open(disk, root_path->first, mode);
+    descriptor_private_data = disk->filesystem->open(disk, root_path->first, mode);
     if(ISERR(descriptor_private_data)){
         res = ERROR_I(descriptor_private_data);
         goto out;
     }
 
-    struct file_descriptor* desc = 0;
     res = file_new_descriptor(&disk);
     if(res < 0){
         goto out;
@@ -200,10 +204,27 @@ int fopen(const char* filename, const char* mode_str){
     res = desc->index;
 
 out:
-    /* fopen should not return negative values */
     if(res < 0){
-        res = 0;
+        /* error */
+        if(root_path){
+            pathparser_free(root_path);
+            root_path = NULL;
+        }
+
+        if(disk && descriptor_private_data){
+            disk->filesystem->close(descriptor_private_data);
+            descriptor_private_data = NULL;
+        }
+
+        if(desc){
+            file_free_descriptor(desc);
+            desc = NULL;
+        }
+
+        /* fopen should not return negative values */
+        res = 0;        
     }
+    
     return res;
 }
 

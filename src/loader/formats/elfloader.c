@@ -150,7 +150,7 @@ void* elf_phys_end(struct elf_file* file){
     validate that we can load this elf file
 */
 int elf_validate_loaded(struct elf_header* header){
-    return (elf_valid_signature(header) && elf_valid_class(header) && elf_valid_encoding(header) && elf_has_program_header(header)) ? (PEACHOS_ALL_OK) : (-EINFORMAT);
+    return (elf_valid_signature(header) && elf_valid_class(header) && elf_valid_encoding(header) && elf_has_program_header(header) && elf_is_executable(header)) ? (PEACHOS_ALL_OK) : (-EINFORMAT);
 }
 
 /*
@@ -224,10 +224,28 @@ out:
 }
 
 /*
+    to free the memory from of the elf file
+*/
+void elf_file_free(struct elf_file* elf_file){
+    if(elf_file->elf_memory){
+        kfree(elf_file->elf_memory);
+    }
+
+    kfree(elf_file);
+}
+
+/*
+    allocating the memory so that it always gets free by elf_file_free
+*/
+struct elf_file* elf_file_new(){
+    return (struct elf_file*)kzalloc(sizeof(struct elf_file));
+}
+
+/*
     to load the elf file
 */
 int elf_load(const char* filename, struct elf_file** file_out){
-    struct elf_file* elf_file = kzalloc(sizeof(struct elf_file));
+    struct elf_file* elf_file = elf_file_new();
     
     int fd = 0;
     int res = fopen(filename, "r");
@@ -259,6 +277,9 @@ int elf_load(const char* filename, struct elf_file** file_out){
     *file_out = elf_file;
 
 out:
+    if(res < 0){
+        elf_file_free(elf_file);
+    }
     fclose(fd);
     return res;
 }

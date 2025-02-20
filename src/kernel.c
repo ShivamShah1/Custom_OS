@@ -181,7 +181,7 @@ void kernel_main(){
     /*
         load the gdt
     */
-    gdt_load(gdt_real, sizeof(gdt_real));
+    gdt_load(gdt_real, sizeof(gdt_real) - 1);
 
     /*
         Here now we are goining to implement heap allocation
